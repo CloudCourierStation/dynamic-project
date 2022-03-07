@@ -1,0 +1,47 @@
+# virtualmachines-crd.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name 必须匹配下面的spec字段：<plural>.<group>
+  name: virtualmachines.cloud.waibizi.com
+spec:
+  # name 必须匹配下面的spec字段：<plural>.<group>
+  group: cloud.waibizi.com
+  # group 名用于 REST API 中的定义：/apis/<group>/<version>
+  versions:
+    - name: v1 # 版本名称，比如 v1、v2beta1 等等
+      served: true  # 版本名称，比如 v1、v2beta1 等等
+      storage: true  # 是否开启通过 REST APIs 访问 `/apis/<group>/<version>/...`
+      schema:  # 定义自定义对象的声明规范
+        openAPIV3Schema:
+          description: Define virtualMachine YAML Spec
+          type: object
+          properties:
+            # 自定义CRD的字段类型
+            spec:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                name:
+                  type: string
+                image:
+                  type: string
+                memory:
+                  type: integer
+                disk:
+                  type: integer
+                status:
+                  type: string
+  # 定义作用范围：Namespaced（命名空间级别）或者 Cluster（整个集群）
+  scope: Namespaced
+  names:
+    # 定义作用范围：Namespaced（命名空间级别）或者 Cluster（整个集群）
+    kind: VirtualMachine
+    # plural 名字用于 REST API 中的定义：/apis/<group>/<version>/<plural>
+    plural: virtualmachines
+    # singular 名称用于 CLI 操作或显示的一个别名
+    singular: virtualmachines
+    # 这个地方就是平时使用kubectl get po 当中这个 po 是 pod的缩写的定义，我们可以直接使用kubectl get vm查看
+    shortNames:
+      - vm

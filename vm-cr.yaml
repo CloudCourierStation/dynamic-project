@@ -1,0 +1,12 @@
+# public-wx.yaml
+apiVersion: "cloud.waibizi.com/v1"
+kind: VirtualMachine
+metadata:
+  name: public-wx
+spec:
+  uuid: "2c4789b2-30f2-4d31-ab71-ca115ea8c199"
+  name: "waibizi-wx-virtual-machine"
+  image: "Centos-7.9"
+  memory: 4096
+  disk: 500
+  status: "creating"
