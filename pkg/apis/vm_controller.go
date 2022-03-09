@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/dynamic/dynamiclister"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -30,14 +29,15 @@ type Controller struct {
 	workqueue     workqueue.RateLimitingInterface
 	vmSynced      cache.InformerSynced
 	vmInformer    cache.SharedIndexInformer
-	vmLister      dynamiclister.Lister
+	vmLister      cache.GenericLister
 	recorder      record.EventRecorder
 }
 
 func NewController(
 	dynamicClient dynamic.Interface,
 	factory dynamicinformer.DynamicSharedInformerFactory) *Controller {
-	informer := factory.ForResource(v1.VMGVR).Informer()
+	genericInformer := factory.ForResource(v1.VMGVR)
+	informer := genericInformer.Informer()
 	// 创建事件广播器
 	eventBroadcaster := record.NewBroadcaster()
 	// 将从广播器接收到的事件发送给日志记录器，进行日志记录
@@ -49,7 +49,7 @@ func NewController(
 		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "virtualmachines"),
 		vmSynced:      informer.HasSynced,
 		vmInformer:    informer,
-		vmLister:      dynamiclister.New(informer.GetIndexer(), v1.VMGVR),
+		vmLister:      genericInformer.Lister(),
 		recorder:      recorder,
 		dynamicClient: dynamicClient,
 	}
@@ -136,7 +136,7 @@ func (c *Controller) syncHandler(key string) error {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return err
 	}
-	unStruct, err := c.vmLister.Namespace(namespace).Get(name)
+	unStruct, err := c.vmLister.ByNamespace(namespace).Get(name)
 	newBytes, err := json.Marshal(unStruct)
 	if err != nil {
 		utilruntime.HandleError(err)
@@ -161,7 +161,7 @@ func (c *Controller) Creating(vm *v1.VirtualMachine) error {
 	// 假设虚拟机都可以创建成功，不成功的话就直接更新为fail啥的就行了，或者返回err重新加入队列当中，不断地去进行创建操作
 	patchData := []byte(`{"spec": {"status": "complete"}}`)
 	// patch更新CR
-	_, err := c.dynamicClient.Resource(v1.VMGVR).Namespace("default").Patch(context.Background(),vm.Name,types.MergePatchType,patchData,metav1.PatchOptions{})
+	_, err := c.dynamicClient.Resource(v1.VMGVR).Namespace("default").Patch(context.Background(), vm.Name, types.MergePatchType, patchData, metav1.PatchOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
